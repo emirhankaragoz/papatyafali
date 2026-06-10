@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papatya Falı</title>
+    <style>
+        :root{
+            --daisy-size: 420px;
+            --center-size: 80px;
+            --petal-w: 36px;
+            --petal-h: 150px;
+        }
+
+        html,body{
+            height:100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 10% 10%, #e0f7ff, transparent 20%), linear-gradient(180deg, #87CEEB 0%, #6FB1E3 60%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Daisy container centered on page */
+        #daisy-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: var(--daisy-size);
+            height: var(--daisy-size);
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+        }
+
+        #center {
+            position: absolute;
+            width: var(--center-size);
+            height: var(--center-size);
+            background: radial-gradient(circle, #FFDF00 40%, #DAA520 100%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+        }
+
+        .petal {
+            position: absolute;
+            width: var(--petal-w);
+            height: var(--petal-h);
+            background: linear-gradient(180deg, #fff9fb 0%, #ffeef8 40%, #ffd8e8 100%);
+            border-radius: 50% 50% 20% 20%;
+            transform-origin: center center;
+            top: 50%;
+            left: 50%;
+            cursor: pointer;
+            transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.45s ease, box-shadow 0.25s ease;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+            z-index: 5;
+            touch-action: manipulation;
+        }
+
+        .petal::before{
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 12px;
+            width: calc(var(--petal-w) - 12px);
+            height: calc(var(--petal-h) - 40px);
+            border-radius: 40% 40% 20% 20%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,230,240,0.6));
+            filter: blur(0.2px);
+            transform: rotate(-6deg);
+            pointer-events: none;
+        }
+
+        /* Normal Plucked (Hemen kaybolan) */
+        .plucked {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(220px) rotate(180deg) !important; 
+            transition: transform 0.6s ease, opacity 0.4s ease;
+        }
+
+        /* 19. Yaprak "Basma" (Titreme) Efekti */
+        @keyframes pressShock {
+            0% { transform: var(--VAR_TRANSFORM) scale(1.08); filter: brightness(1.05); }
+            50% { transform: var(--VAR_TRANSFORM) scale(1.02) translateY(-3px); filter: brightness(1.18); }
+            100% { transform: var(--VAR_TRANSFORM) scale(1.08); filter: brightness(1.05); }
+        }
+
+        .pressing {
+            animation: pressShock 0.4s ease-in-out infinite;
+            box-shadow: 0 0 28px #FFDF00;
+            z-index: 30 !important;
+            cursor: wait;
+        }
+
+        /* Modal */
+        #image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 0.28s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #image-modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #modal-img {
+            max-width: 80%;
+            max-height: 70%;
+            border: 8px solid white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            margin-bottom: 18px;
+            object-fit: cover;
+        }
+
+        #close-btn {
+            padding: 12px 28px;
+            background: white;
+            color: #333;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.18s;
+        }
+
+        #close-btn:hover { background: #f2f2f2; }
+
+        #message {
+            position: absolute;
+            bottom: 36px;
+            font-size: 36px;
+            color: white;
+            font-weight: 700;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
+            text-align: center;
+            width: 100%;
+            pointer-events: none;
+            transition: transform 0.3s ease, font-size 0.2s ease;
+        }
+
+        /* Responsive tweaks for phones (iPhone 11 ~ 414px wide and large Android phones) */
+        @media (max-width: 430px) {
+            :root{ --daisy-size: 320px; --center-size: 64px; --petal-w: 28px; --petal-h: 120px; }
+            body { overflow: auto; }
+            #modal-img { max-width: 95%; max-height: 60%; }
+            #message { font-size: 22px; bottom: 18px; }
+        }
+
+        @media (max-width: 360px) {
+            :root{ --daisy-size: 280px; --center-size: 56px; --petal-w: 24px; --petal-h: 100px; }
+            #message { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="daisy-container">
+        <div id="center"></div>
+    </div>
+
+    <div id="image-modal" class="hidden">
+        <img id="modal-img" src="" alt="Sürpriz Fotoğraf">
+        <button id="close-btn">Geri Dön</button>
+    </div>
+
+    <div id="message">Papatya Falı</div>
+
+    <script>
+        const daisyContainer = document.getElementById('daisy-container');
+        const modal = document.getElementById('image-modal');
+        const modalImg = document.getElementById('modal-img');
+        const closeBtn = document.getElementById('close-btn');
+        const messageEl = document.getElementById('message');
+
+        const totalPetals = 19;
+        let clickCount = 0;
+        let isLovesMe = true; 
+
+        // --- AYARLAR ---
+        // Fotoğraflar `foto_1.jpg` .. `foto_19.jpg` şeklinde olacak.
+        const photos = Array.from({length: 19}, (_, i) => `foto_${i + 1}.jpg`);
+
+        // Gecikme süresi (Milisaniye cinsinden. 3000 = 3 saniye)
+        const finalDelay = 3000; 
+        // ---------------
+
+        // Yaprakları Oluşturma
+        for (let i = 0; i < totalPetals; i++) {
+            const petal = document.createElement('div');
+            petal.className = 'petal';
+            
+            const angle = i * (360 / totalPetals);
+            // calculate radius based on container size so layout scales responsively
+            const containerRect = daisyContainer.getBoundingClientRect();
+            const containerRadius = Math.min(containerRect.width, containerRect.height) / 2;
+            const rootStyles = getComputedStyle(document.documentElement);
+            const centerSize = parseFloat(rootStyles.getPropertyValue('--center-size')) || 80;
+            const petalHeight = parseFloat(rootStyles.getPropertyValue('--petal-h')) || 150;
+            const radius = Math.max(60, containerRadius - centerSize / 2 - petalHeight / 3);
+            const distance = Math.round(radius);
+            // position from true center: translate(-50%,-50%) then rotate and translate outward
+            petal.style.top = '50%';
+            petal.style.left = '50%';
+            const baseTransform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${distance}px)`;
+            petal.style.transform = baseTransform;
+
+            // Hover efekti
+            petal.addEventListener('mouseenter', () => {
+                if (!petal.classList.contains('plucked') && !petal.classList.contains('pressing')) {
+                    petal.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${distance - 15}px) scale(1.15)`;
+                }
+            });
+
+            petal.addEventListener('mouseleave', () => {
+                if (!petal.classList.contains('plucked') && !petal.classList.contains('pressing')) {
+                    petal.style.transform = baseTransform;
+                }
+            });
+
+            // Dokunmatik: hızlı görsel tepki
+            petal.addEventListener('touchstart', (e) => {
+                if (petal.classList.contains('plucked') || petal.classList.contains('pressing')) return;
+                petal.style.transform = `translate(-50%, -50%) rotate(${angle}deg) translateY(-${distance - 12}px) scale(1.05)`;
+            }, {passive: true});
+
+            // On touch devices trigger click on touchend for more reliable behavior
+            petal.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (!(petal.classList.contains('plucked') || petal.classList.contains('pressing'))) {
+                    petal.click();
+                }
+            }, {passive: false});
+
+            // Tıklama mantığı
+            petal.addEventListener('click', () => {
+                if (petal.classList.contains('plucked') || petal.classList.contains('pressing')) return; 
+
+                clickCount++;
+
+                // Show photos strictly in order 1..19 regardless which petal clicked
+                if (clickCount < 19) {
+                    petal.classList.add('plucked');
+                    modalImg.src = photos[clickCount - 1];
+                    modal.classList.remove('hidden');
+                    messageEl.innerText = isLovesMe ? "Seviyor..." : "Sevmiyor...";
+                    isLovesMe = !isLovesMe;
+                } else if (clickCount === 19) {
+                    // Final dramatic effect then show foto_19
+                    petal.style.setProperty('--VAR_TRANSFORM', baseTransform);
+                    petal.classList.add('pressing');
+                    messageEl.innerHTML = "Seviyor...";
+                    setTimeout(() => {
+                        petal.classList.remove('pressing');
+                        petal.classList.add('plucked');
+                        modalImg.src = photos[clickCount - 1];
+                        modal.classList.remove('hidden');
+                        messageEl.innerHTML = "<span style='color:#FFDF00; font-size:48px;'>Bana Bak! ❤️</span>";
+                    }, finalDelay);
+                }
+            });
+
+            daisyContainer.appendChild(petal);
+        }
+
+        closeBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
