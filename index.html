@@ -136,6 +136,8 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             margin-bottom: 18px;
             object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.28s ease;
         }
 
         #close-btn {
@@ -202,15 +204,34 @@
 
         const totalPetals = 19;
         let clickCount = 0;
-        let isLovesMe = true; 
+        let isLovesMe = true;
 
         // --- AYARLAR ---
         // Fotoğraflar `foto_1.jpg` .. `foto_19.jpg` şeklinde olacak.
         const photos = Array.from({length: 19}, (_, i) => `foto_${i + 1}.jpg`);
 
         // Gecikme süresi (Milisaniye cinsinden. 3000 = 3 saniye)
-        const finalDelay = 3000; 
+        const finalDelay = 3000;
         // ---------------
+
+        // Basit önbellekleme (preload) nesnesi
+        const preloaded = {};
+
+        function preloadImage(src) {
+            return new Promise((resolve) => {
+                if (preloaded[src]) return resolve(preloaded[src]);
+                const img = new Image();
+                img.src = src;
+                img.onload = () => {
+                    preloaded[src] = img;
+                    resolve(img);
+                };
+                img.onerror = () => resolve(null);
+            });
+        }
+
+        // İlk birkaç görseli arka planda ön yükle (algıdaki gecikmeyi azaltır)
+        photos.slice(0, 4).forEach(src => preloadImage(src));
 
         // Yaprakları Oluşturma
         for (let i = 0; i < totalPetals; i++) {
@@ -268,8 +289,18 @@
                 // Show photos strictly in order 1..19 regardless which petal clicked
                 if (clickCount < 19) {
                     petal.classList.add('plucked');
-                    modalImg.src = photos[clickCount - 1];
+                    const src = photos[clickCount - 1];
+                    modalImg.style.opacity = 0;
                     modal.classList.remove('hidden');
+                    // ensure image is loaded & decoded before showing to avoid sudden delay
+                    preloadImage(src).then(() => {
+                        modalImg.src = src;
+                        if (modalImg.decode) {
+                            modalImg.decode().then(() => modalImg.style.opacity = 1).catch(() => modalImg.style.opacity = 1);
+                        } else {
+                            modalImg.style.opacity = 1;
+                        }
+                    });
                     messageEl.innerText = isLovesMe ? "Seviyor..." : "Sevmiyor...";
                     isLovesMe = !isLovesMe;
                 } else if (clickCount === 19) {
@@ -280,8 +311,17 @@
                     setTimeout(() => {
                         petal.classList.remove('pressing');
                         petal.classList.add('plucked');
-                        modalImg.src = photos[clickCount - 1];
+                        const src = photos[clickCount - 1];
+                        modalImg.style.opacity = 0;
                         modal.classList.remove('hidden');
+                        preloadImage(src).then(() => {
+                            modalImg.src = src;
+                            if (modalImg.decode) {
+                                modalImg.decode().then(() => modalImg.style.opacity = 1).catch(() => modalImg.style.opacity = 1);
+                            } else {
+                                modalImg.style.opacity = 1;
+                            }
+                        });
                         messageEl.innerHTML = "<span style='color:#FFDF00; font-size:48px;'>Bana Bak! ❤️</span>";
                     }, finalDelay);
                 }
@@ -292,6 +332,9 @@
 
         closeBtn.addEventListener('click', () => {
             modal.classList.add('hidden');
+            modalImg.style.opacity = 0;
+            // optional: release src to free memory / avoid accidental re-display of previous
+            modalImg.src = '';
         });
     </script>
 </body>
